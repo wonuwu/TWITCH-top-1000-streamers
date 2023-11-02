@@ -1,0 +1,230 @@
+---
+]=---
+title: "PORTFOLIO#1"
+author: "Christine Jane B. Oledan"
+format: html
+editor: visual
+---
+
+## **Insights on the Top 1000 Streamers on Twitch**
+
+Quarto enables you to weave together content and executable code into a finished document.
+
+## **Top Streamers on Twitch**
+
+This dataset encompasses various elements such as the count of viewers, active viewer count, acquired followers, and several other pertinent columns related to a specific content creator's livestream. The dataset comprises 11 distinct columns encompassing all essential information required for analysis.
+
+## **WHAT DO I WISH TO KNOW FROM THE DATASET?**
+
+1.  what do the top twitch streamers have in common?
+2.  give insights from the data
+3.  aesthetic visualization
+4.  analysis from the dataset
+
+```{r}
+#reading csv dataset
+setwd("D:/CJ FOLDER/CJ_PORTFOLIO/CHRISTINE_O_PORTFOLIO")
+twitch <- read.csv("twitch_top1000_streamers.csv")
+```
+
+```{r}
+#packages
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(dplyr)
+library(reshape)
+```
+
+```{r}
+head(twitch)
+str(twitch)
+glimpse(twitch)
+```
+
+The dataset has the top 1000 twitch streamer accounts with 11 variables namely:
+
+1.  Channel - this variable is the twitch streamer account name
+2.  Watch.time.minutes - the total number of times their stream is watched in minutes.
+3.  Stream.time.minutes - the total number of minutes they stream in twitch
+4.  Peak.viewers - total number of viewers
+5.  Average.viewers - average of their viewers.
+6.  Followers - total number of followers
+7.  Followers.gained - followers gained throughout time
+8.  Views.gained - views gained throughout time
+9.  Partnered - whether they supported by external organization or not.
+10. Mature - whether the accounts content is suitable or not for all ages.
+11. Language - what language are they using during stream.
+
+## **DATA PRE-PROCESSING**
+
+```{r}
+#descriptive stats
+summary(twitch)
+```
+
+```{r}
+anyNA(twitch)
+#no missing values
+sapply(twitch, function(x) sum(is.na(x)))
+```
+
+```{r}
+# Convert the 'is_positive' variable to a binary variable (1 for TRUE, 0 for FALSE)
+twitch$Partnered <- as.factor(twitch$Partnered)
+twitch$Mature <- as.factor(twitch$Mature)
+twitch$Language <- as.factor(twitch$Language)
+
+str(twitch)
+```
+
+## **EXPLORATORY DATA ANALYSIS**
+
+#categorical variables
+
+```{r}
+#DISTRIBUTION OF STREAMERS WITH OR WITHOUT PARTNERSHIP
+#barplot
+# Create a bar plot for Partnered
+partnered_plot <- ggplot(twitch, aes(x = Partnered, fill = Partnered)) +
+  geom_bar(aes(y = (after_stat(count))/sum(after_stat(count))), width = 0.7) +
+  scale_y_continuous(labels = scales::percent_format(scale = 1)) +
+  labs(title = "Distribution of Partnered Status",
+       x = "Partnered",
+       y = "Percentage") +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+print(partnered_plot)
+```
+
+```{r}
+#DISTRIBUTION OF STREAMERS WITH OR WITHOUT MATURE CONTENTS
+# Create a bar plot for Mature
+mature_plot <- ggplot(twitch, aes(x = Mature, fill = Mature)) +
+  geom_bar(aes(y = (..count..)/sum(..count..)), width = 0.7) +
+  scale_y_continuous(labels = scales::percent_format(scale = 1)) +
+  labs(title = "Distribution of Mature Status",
+       x = "Mature",
+       y = "Percentage") +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+print(mature_plot)
+```
+
+Visualizing the distribution of 21 levels of languages in a variable can be challenging due to the limited space available for labeling each language on the x-axis. Here are a few visualization options:
+
+1.  **Grouping Languages:** Group similar languages together or group less frequent languages into an "Other" category. This can help reduce the number of levels displayed on the x-axis.
+
+2.  **Interactive Visualization:** Consider creating an interactive visualization using packages like **`plotly`** or **`shiny`**. These packages allow users to interact with the chart, including zooming and panning, which can be helpful when dealing with a large number of levels.
+
+3.  **Word Cloud:** You can create a word cloud to visualize the distribution of languages. Word clouds are often used for text data and can give you a visual sense of the most common languages.
+
+```{r}
+levels(twitch$Language)
+```
+
+```{r}
+#DISTRIBUTION OF STREAMERS WITH OR WITHOUT MATURE CONTENTS
+# Assuming you have a vector of languages called 'languages'
+library(tm)
+library(wordcloud)
+
+# Create a corpus from the language data
+corpus <- Corpus(VectorSource(twitch$Language))
+
+# Preprocess the text (remove stopwords, convert to lowercase, etc.)
+corpus <- tm_map(corpus, content_transformer(tolower))
+corpus <- tm_map(corpus, removePunctuation)
+corpus <- tm_map(corpus, removeNumbers)
+corpus <- tm_map(corpus, removeWords, stopwords("ENGLISH"))
+
+# Create a term-document matrix
+tdm <- TermDocumentMatrix(corpus)
+
+# Convert the term-document matrix to a matrix and calculate word frequencies
+m <- as.matrix(tdm)
+word_freqs <- sort(rowSums(m), decreasing = TRUE)
+
+# Create a word cloud
+wordcloud(words = names(word_freqs), freq = word_freqs, scale = c(3, 1.5), colors = brewer.pal(8, "Dark2"))
+
+
+```
+
+```{r}
+# Assuming your dataframe is named "twitch" and the variable is "Language"
+# You can use the `ggplot` function to create the plot
+ggplot(data = twitch, aes(x = Language, fill = Language)) +
+  geom_bar() +
+  labs(x = "Language", y = "Frequency", title = "Language Frequency on Twitch") +
+  theme(legend.position = "right")  # Position the legend on the right side
+
+
+```
+
+#CORRELATION OF VARIABLES
+
+```{r}
+
+# Extract numeric variables from the twitch dataset
+numeric_data <- twitch[, c("Watch.time.Minutes.", "Stream.time.minutes.", "Peak.viewers",
+                                   "Average.viewers", "Followers", "Followers.gained",
+                                   "Views.gained")]
+
+# Calculate the correlation matrix for numeric variables
+correlation_matrix <- cor(numeric_data)
+
+# Get row and column names of the correlation matrix
+row_names <- rownames(correlation_matrix)
+col_names <- colnames(correlation_matrix)
+
+# Create a data frame with the row and column names
+correlation_data <- expand.grid(Var1 = row_names, Var2 = col_names)
+correlation_data$value <- correlation_matrix[as.matrix(correlation_data[c("Var1", "Var2")])]
+
+# Create a heatmap for the correlation matrix
+heatmap_plot <- ggplot(data = correlation_data, aes(Var1, Var2, fill = value)) +
+  geom_tile() +
+  scale_fill_gradient(low = "white", high = "blue") +
+  labs(title = "Correlation Heatmap of Numeric Variables",
+       x = "Variables",
+       y = "Variables") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate x-axis labels for readability
+
+# Print the heatmap
+print(heatmap_plot)
+
+
+
+```
+
+#explanation on correlation: which variables correlates more
+
+```{r}
+#TOP 10 STREAMERS
+# Sort the data frame in descending order based on Followers
+sorted_twitch <- twitch[order(-twitch$Followers), ]
+
+# Select the top 10 streamers
+top_10_streamers <- head(sorted_twitch, 10)
+
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\# Print the top 10 streamers
+print(top_10_streamers)
+
+
+```
+
+In this code:
+
+-   We use the **`order()`** function to sort the "twitch" data frame based on the "Average.viewers" column in descending order (indicated by the negative sign **`-`**). This will arrange the streamers with the highest average viewers at the top.
+
+-   We then use the **`head()`** function to select the top 10 rows of the sorted data frame, effectively giving us the top 10 streamers based on their average viewership.
+
+You can replace "Average.viewers" with any other metric you want to use for ranking the streamers, such as "Followers" or "Peak.viewers," depending on your specific criteria.
+
+```{r}
+
+```
